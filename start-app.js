@@ -1,34 +1,75 @@
 // Скрипт для запуска Next.js приложения
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
-// Выводим диагностическую информацию
-require('./railway.js');
+// Функция для проверки подключения к базе данных
+async function checkDatabaseConnection() {
+  return new Promise((resolve) => {
+    console.log('Проверка подключения к базе данных...');
 
-// Получение порта из переменных окружения или использование 3000 по умолчанию
-const PORT = process.env.PORT || 3000;
+    const testProcess = spawn('node', ['prisma-test.js'], {
+      stdio: 'inherit',
+      shell: true
+    });
 
-console.log(`Запуск Next.js на порту ${PORT}...`);
+    testProcess.on('close', (code) => {
+      if (code === 0) {
+        console.log('Подключение к базе данных успешно проверено!');
+        resolve(true);
+      } else {
+        console.error(`Ошибка подключения к базе данных, код выхода: ${code}`);
+        resolve(false);
+      }
+    });
+  });
+}
 
-// Пути к директориям Next.js
-const nextBinPath = path.join(process.cwd(), 'node_modules', '.bin', 'next');
+// Функция для запуска сервера Next.js
+async function startNextApp() {
+  // Выводим диагностическую информацию
+  require('./railway.js');
 
-// Запуск Next.js
-const nextProcess = spawn(nextBinPath, ['start', '-p', PORT], {
-  stdio: 'inherit',
-  shell: true
-});
+  // Получение порта из переменных окружения или использование 3000 по умолчанию
+  const PORT = process.env.PORT || 3000;
 
-nextProcess.on('close', (code) => {
-  console.log(`Next.js процесс завершился с кодом ${code}`);
-  process.exit(code);
-});
+  console.log(`Запуск Next.js на порту ${PORT}...`);
 
-// Обработка сигналов завершения
-process.on('SIGINT', () => {
-  nextProcess.kill('SIGINT');
-});
+  // Пути к директориям Next.js
+  const nextBinPath = path.join(process.cwd(), 'node_modules', '.bin', 'next');
 
-process.on('SIGTERM', () => {
-  nextProcess.kill('SIGTERM');
+  // Запуск Next.js
+  const nextProcess = spawn(nextBinPath, ['start', '-p', PORT], {
+    stdio: 'inherit',
+    shell: true
+  });
+
+  nextProcess.on('close', (code) => {
+    console.log(`Next.js процесс завершился с кодом ${code}`);
+    process.exit(code);
+  });
+
+  // Обработка сигналов завершения
+  process.on('SIGINT', () => {
+    nextProcess.kill('SIGINT');
+  });
+
+  process.on('SIGTERM', () => {
+    nextProcess.kill('SIGTERM');
+  });
+}
+
+// Основная функция запуска приложения
+async function main() {
+  // Сначала проверяем подключение к базе данных
+  await checkDatabaseConnection();
+
+  // Запускаем приложение
+  await startNextApp();
+}
+
+// Запуск основной функции
+main().catch(error => {
+  console.error('Ошибка при запуске приложения:', error);
+  process.exit(1);
 });
