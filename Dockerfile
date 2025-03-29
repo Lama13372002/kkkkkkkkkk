@@ -1,7 +1,7 @@
 FROM oven/bun:1 as base
 WORKDIR /app
 
-# Копируем только файлы, необходимые для зависимостей
+# Копируем сначала только файлы, необходимые для зависимостей
 COPY package.json bun.lock ./
 COPY prisma ./prisma
 
@@ -11,7 +11,7 @@ RUN bun install
 # Копируем остальные файлы приложения
 COPY . .
 
-# Генерируем Prisma клиент (на всякий случай, хотя он должен был сгенерироваться в postinstall)
+# Генерируем Prisma клиент (на всякий случай)
 RUN bunx prisma generate
 
 # Сборка проекта
