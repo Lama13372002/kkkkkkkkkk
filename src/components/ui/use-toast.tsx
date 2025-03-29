@@ -1,3 +1,5 @@
+'use client'
+
 // Простой хук для показа уведомлений
 import { useState, useCallback } from 'react'
 
