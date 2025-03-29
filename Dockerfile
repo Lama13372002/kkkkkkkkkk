@@ -18,7 +18,16 @@ RUN bunx prisma generate
 RUN bun run build
 
 # Создаем скрипт запуска приложения с предварительным запуском миграций
-RUN echo '#!/bin/sh\nnode migrate.js && bun start' > /app/start.sh && chmod +x /app/start.sh
+RUN echo '#!/bin/sh\n\
+if [ -z "$DATABASE_URL" ]; then\n\
+  echo "ПРЕДУПРЕЖДЕНИЕ: DATABASE_URL не установлен. Миграции не будут выполнены."\n\
+else\n\
+  echo "Запуск миграций базы данных..."\n\
+  node migrate.js || echo "Миграции не удались, но приложение всё равно будет запущено"\n\
+fi\n\
+echo "Запуск приложения..."\n\
+node start-app.js\n\
+' > /app/start.sh && chmod +x /app/start.sh
 
 # Запуск приложения
 EXPOSE 3000
